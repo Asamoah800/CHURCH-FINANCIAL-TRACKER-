@@ -1,0 +1,364 @@
+
+#include <iostream>
+#include <iostream>
+#include <fstream>
+#include <vector>
+#include <string>
+#include <map>
+#include <algorithm>
+#include <sstream>
+
+using namespace std;
+
+struct Donation {
+    string donorName;
+    double amount;
+    string date;
+    string category;
+};
+
+struct User {
+    string username;
+    string password;
+};
+
+string currentUser;
+vector<Donation> donations;
+
+string getDonationFilename() {
+    return currentUser + "_donations.txt";
+}
+
+void displayMenu() {
+    cout << "\n--- Donation Tracker Menu ---\n";
+    cout << "1. Add Donation\n";
+    cout << "2. View Donations\n";
+    cout << "3. Save Donations\n";
+    cout << "4. Generate Report\n";
+    cout << "5. Search Donation\n";
+    cout << "6. Delete Donation\n";
+    cout << "7. Edit Donation\n";
+    cout << "8. Export to CSV\n";
+    cout << "9. Change Password\n";
+    cout << "10. Sort Donations\n";
+    cout << "11. Filter by Date Range\n";
+    cout << "12. Top Donors Report\n";
+    cout << "13. Donor Donation History\n";
+    cout << "14. Category Summary\n";
+    cout << "15. Exit\n";
+}
+
+void exportToCSV() {
+    ofstream file(currentUser + "_donations.csv");
+    file << "Donor,Amount,Date,Category\n";
+    for (const auto& d : donations) {
+        file << d.donorName << "," << d.amount << "," << d.date << "," << d.category << "\n";
+    }
+    cout << "Exported to CSV.\n";
+}
+
+void sortDonations() {
+    sort(donations.begin(), donations.end(), [](Donation a, Donation b) {
+        return a.date < b.date;
+    });
+    cout << "Donations sorted by date.\n";
+}
+
+void filterByDate() {
+    string start, end;
+    cout << "Start date (YYYY-MM-DD): "; getline(cin, start);
+    cout << "End date (YYYY-MM-DD): "; getline(cin, end);
+    cout << "\n--- Filtered Donations ---\n";
+    for (const auto& d : donations) {
+        if (d.date >= start && d.date <= end) {
+            cout << "Donor: " << d.donorName << ", Amount: $" << d.amount
+                 << ", Date: " << d.date << ", Category: " << d.category << "\n";
+        }
+    }
+}
+
+void topDonors() {
+    map<string, double> donorSums;
+    for (const auto& d : donations) {
+        donorSums[d.donorName] += d.amount;
+    }
+    vector<pair<string, double>> sorted(donorSums.begin(), donorSums.end());
+    sort(sorted.begin(), sorted.end(), [](auto& a, auto& b) { return a.second > b.second; });
+    cout << "\n--- Top Donors ---\n";
+    for (const auto& p : sorted) {
+        cout << p.first << ": $" << p.second << "\n";
+    }
+}
+
+void donorHistory() {
+    string name;
+    cout << "Enter donor name: ";
+    getline(cin, name);
+    cout << "\n--- Donation History for " << name << " ---\n";
+    for (const auto& d : donations) {
+        if (d.donorName == name) {
+            cout << "Amount: $" << d.amount << ", Date: " << d.date << ", Category: " << d.category << "\n";
+        }
+    }
+}
+
+void categorySummary() {
+    map<string, double> totals;
+    for (const auto& d : donations) {
+        totals[d.category] += d.amount;
+    }
+    cout << "\n--- Donation Summary by Category ---\n";
+    for (const auto& p : totals) {
+        cout << p.first << ": $" << p.second << "\n";
+    }
+}
+
+bool login() {
+    string username, password;
+    cout << "Username: "; getline(cin, username);
+    cout << "Password: "; getline(cin, password);
+    ifstream file("users.txt");
+    string line;
+    while (getline(file, line)) {
+        size_t pos = line.find(':');
+        if (pos != string::npos) {
+            string storedUser = line.substr(0, pos);
+            string storedPass = line.substr(pos + 1);
+            if (username == storedUser && password == storedPass) {
+                currentUser = username;
+                return true;
+            }
+        }
+    }
+    cout << "Invalid credentials.\n";
+    return false;
+}
+
+bool signUp() {
+    User newUser;
+    cout << "New username: "; getline(cin, newUser.username);
+    cout << "New password: "; getline(cin, newUser.password);
+    ofstream file("users.txt", ios::app);
+    file << newUser.username << ":" << newUser.password << "\n";
+    currentUser = newUser.username;
+    return true;
+}
+
+void loadDonations() {
+    ifstream file(getDonationFilename());
+    string line;
+    while (getline(file, line)) {
+        stringstream ss(line);
+        Donation d;
+        getline(ss, d.donorName, ',');
+        ss >> d.amount;
+        ss.ignore();
+        getline(ss, d.date, ',');
+        getline(ss, d.category);
+        donations.push_back(d);
+    }
+}
+
+void saveDonations() {
+    ofstream file(getDonationFilename());
+    for (const auto& d : donations) {
+        file << d.donorName << "," << d.amount << "," << d.date << "," << d.category << "\n";
+    }
+    cout << "Donations saved.\n";
+}
+
+void addDonation() {
+    Donation d;
+    cout << "Donor name: "; getline(cin, d.donorName);
+    cout << "Amount: $"; cin >> d.amount;
+    cin.ignore();
+    cout << "Date (YYYY-MM-DD): "; getline(cin, d.date);
+    cout << "Category: "; getline(cin, d.category);
+    donations.push_back(d);
+    cout << "Donation added.\n";
+}
+
+void viewDonations() {
+    cout << "\n--- All Donations ---\n";
+    for (const auto& d : donations) {
+        cout << "Donor: " << d.donorName << ", Amount: $" << d.amount
+             << ", Date: " << d.date << ", Category: " << d.category << "\n";
+    }
+}
+
+void searchDonations() {
+    string term;
+    cout << "Enter search term: ";
+    getline(cin, term);
+    cout << "\n--- Search Results ---\n";
+    for (const auto& d : donations) {
+        if (d.donorName.find(term) != string::npos || 
+            d.date.find(term) != string::npos || 
+            d.category.find(term) != string::npos) {
+            cout << "Donor: " << d.donorName << ", Amount: $" << d.amount
+                 << ", Date: " << d.date << ", Category: " << d.category << "\n";
+        }
+    }
+}
+
+void deleteDonation() {
+    if (donations.empty()) {
+        cout << "No donations to delete.\n";
+        return;
+    }
+    
+    cout << "\nCurrent donations:\n";
+    for (size_t i = 0; i < donations.size(); i++) {
+        cout << i + 1 << ". " << donations[i].donorName << " - $" 
+             << donations[i].amount << " (" << donations[i].date << ")\n";
+    }
+    
+    cout << "Enter number to delete (1-" << donations.size() << "): ";
+    int index;
+    cin >> index;
+    cin.ignore();
+    
+    if (index > 0 && index <= static_cast<int>(donations.size())) {
+        donations.erase(donations.begin() + index - 1);
+        cout << "Donation deleted.\n";
+    } else {
+        cout << "Invalid index.\n";
+    }
+}
+
+void editDonation() {
+    if (donations.empty()) {
+        cout << "No donations to edit.\n";
+        return;
+    }
+    
+    cout << "\nCurrent donations:\n";
+    for (size_t i = 0; i < donations.size(); i++) {
+        cout << i + 1 << ". " << donations[i].donorName << " - $" 
+             << donations[i].amount << " (" << donations[i].date << ")\n";
+    }
+    
+    cout << "Enter number to edit (1-" << donations.size() << "): ";
+    int index;
+    cin >> index;
+    cin.ignore();
+    
+    if (index > 0 && index <= static_cast<int>(donations.size())) {
+        Donation& d = donations[index - 1];
+        cout << "New donor name (or press enter to keep '" << d.donorName << "'): ";
+        string input;
+        getline(cin, input);
+        if (!input.empty()) d.donorName = input;
+        
+        cout << "New amount (or -1 to keep $" << d.amount << "): ";
+        double amount;
+        cin >> amount;
+        cin.ignore();
+        if (amount != -1) d.amount = amount;
+        
+        cout << "New date (or press enter to keep '" << d.date << "'): ";
+        getline(cin, input);
+        if (!input.empty()) d.date = input;
+        
+        cout << "New category (or press enter to keep '" << d.category << "'): ";
+        getline(cin, input);
+        if (!input.empty()) d.category = input;
+        
+        cout << "Donation updated.\n";
+    } else {
+        cout << "Invalid index.\n";
+    }
+}
+
+void generateReport() {
+    double total = 0;
+    map<string, double> categoryTotals;
+    
+    for (const auto& d : donations) {
+        total += d.amount;
+        categoryTotals[d.category] += d.amount;
+    }
+    
+    cout << "\n=== Donation Report ===\n";
+    cout << "Total donations: $" << total << "\n";
+    cout << "Number of donations: " << donations.size() << "\n";
+    cout << "\nCategory breakdown:\n";
+    for (const auto& cat : categoryTotals) {
+        cout << cat.first << ": $" << cat.second << "\n";
+    }
+}
+
+void changePassword() {
+    string oldPass, newPass;
+    cout << "Enter old password: ";
+    getline(cin, oldPass);
+    cout << "Enter new password: ";
+    getline(cin, newPass);
+    
+    vector<string> lines;
+    ifstream inFile("users.txt");
+    string line;
+    bool found = false;
+    
+    while (getline(inFile, line)) {
+        size_t pos = line.find(':');
+        string username = line.substr(0, pos);
+        string password = line.substr(pos + 1);
+        
+        if (username == currentUser && password == oldPass) {
+            lines.push_back(username + ":" + newPass);
+            found = true;
+        } else {
+            lines.push_back(line);
+        }
+    }
+    inFile.close();
+    
+    if (!found) {
+        cout << "Incorrect old password.\n";
+        return;
+    }
+    
+    ofstream outFile("users.txt");
+    for (const auto& l : lines) {
+        outFile << l << "\n";
+    }
+    cout << "Password changed successfully.\n";
+}
+
+int main() {
+    cout << "Welcome to Church Donation Tracker\n";
+    while (true) {
+        cout << "\n1. Login\n2. Sign Up\nChoose an option: ";
+        string choice;
+        getline(cin, choice);
+        if (choice == "1" && login()) break;
+        else if (choice == "2" && signUp()) break;
+    }
+    loadDonations();
+    string option;
+    do {
+        displayMenu();
+        cout << "Choose an option: ";
+        getline(cin, option);
+        if (option == "1") addDonation();
+        else if (option == "2") viewDonations();
+        else if (option == "3") saveDonations();
+        else if (option == "4") generateReport();
+        else if (option == "5") searchDonations();
+        else if (option == "6") deleteDonation();
+        else if (option == "7") editDonation();
+        else if (option == "8") exportToCSV();
+        else if (option == "9") changePassword();
+        else if (option == "10") sortDonations();
+        else if (option == "11") filterByDate();
+        else if (option == "12") topDonors();
+        else if (option == "13") donorHistory();
+        else if (option == "14") categorySummary();
+    } while (option != "15");
+
+    saveDonations();
+    cout << "Goodbye!\n";
+    return 0;
+}
+    
