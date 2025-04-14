@@ -1,0 +1,88 @@
+#include <iostream>
+#include <fstream>
+#include <string>
+#include <iomanip> // for formatting
+using namespace std;
+
+// Function to calculate estimated yield
+float estimateYield(string cropType, float landSize, float fertilizer, float rainfall, string method) {
+    float baseYield;
+
+    if (cropType == "maize") baseYield = 2.5;
+    else if (cropType == "rice") baseYield = 3.0;
+    else if (cropType == "cassava") baseYield = 5.0;
+    else baseYield = 2.0;
+
+    float fertilizerBoost = (fertilizer > 50) ? 1.2f : 1.0f;
+    float rainBoost = (rainfall >= 300 && rainfall <= 600) ? 1.3f : 1.0f;
+    float methodBoost = (method == "mechanized") ? 1.2f : 1.0f;
+
+    return landSize * baseYield * fertilizerBoost * rainBoost * methodBoost;
+}
+
+// Function to give advice
+void giveAdvice(float fertilizer, float rainfall, string method) {
+    if (fertilizer < 50)
+        cout << "- Tip: Increase fertilizer to at least 50kg/acre.\n";
+    if (rainfall < 300 || rainfall > 600)
+        cout << "- Tip: Consider irrigation or water control for rainfall.\n";
+    if (method == "manual")
+        cout << "- Tip: Mechanized farming can raise efficiency.\n";
+}
+
+// Save to file
+void saveToFile(string name, string crop, float yield, float profit) {
+    ofstream outFile("yield_results.txt", ios::app);
+    if (outFile.is_open()) {
+        outFile << fixed << setprecision(2);
+        outFile << "Farmer: " << name << ", Crop: " << crop
+                << ", Yield: " << yield << " tons, Profit: $" << profit << "\n";
+        outFile.close();
+        cout << "Saved to 'yield_results.txt'.\n";
+    } else {
+        cout << "Could not save the file.\n";
+    }
+}
+
+// Main program
+int main() {
+    string name, crop, method;
+    float land, fertilizer, rainfall, price;
+    char choice;
+
+    cout << "=== CROP YIELD CALCULATOR ===\n";
+    cout << "Akwaaba! (Welcome!) Please enter your name: ";
+    getline(cin, name);
+
+    do {
+        cout << "\n--- New Yield Calculation ---\n";
+        cout << "Crop type (maize/rice/cassava): ";
+        cin >> crop;
+        cout << "Land size (acres): ";
+        cin >> land;
+        cout << "Fertilizer used (kg/acre): ";
+        cin >> fertilizer;
+        cout << "Average rainfall (mm/month): ";
+        cin >> rainfall;
+        cout << "Farming method (manual/mechanized): ";
+        cin >> method;
+        cout << "Market price per ton (USD): ";
+        cin >> price;
+
+        float yield = estimateYield(crop, land, fertilizer, rainfall, method);
+        float profit = yield * price;
+
+        cout << fixed << setprecision(2);
+        cout << "\nEstimated Yield: " << yield << " tons\n";
+        cout << "Estimated Profit: $" << profit << "\n\n";
+
+        giveAdvice(fertilizer, rainfall, method);
+        saveToFile(name, crop, yield, profit);
+
+        cout << "\nCalculate again? (y/n): ";
+        cin >> choice;
+    } while (choice == 'y' || choice == 'Y');
+
+    cout << "\nMedase! (Thank you!) for using the Crop Yield Calculator.\n";
+    return 0;
+}
